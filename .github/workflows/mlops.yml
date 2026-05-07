@@ -2,7 +2,7 @@ name: MLOps Pipeline
 
 on:
   push:
-    branches: [main]
+    branches: [main] # Đổi thành [master] nếu nhánh của bạn tên là master
     paths:
       - 'data/**.dvc'
       - 'src/**.py'
@@ -23,7 +23,9 @@ jobs:
           python-version: "3.10"
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          pip install -r requirements.txt
+          pip install pytest # Đảm bảo có pytest
 
       - name: Run unit tests
         run: python -m pytest tests/ -v
@@ -44,7 +46,9 @@ jobs:
           python-version: "3.10"
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          pip install -r requirements.txt
+          pip install "dvc[gs]" # Cần thiết để DVC làm việc với GCS
 
       - name: Authenticate to Cloud Storage
         run: |
@@ -53,6 +57,7 @@ jobs:
 
       - name: Pull data with DVC
         run: |
+          # Thiết lập remote cục bộ để không ảnh hưởng đến file config trong git
           dvc remote modify myremote --local credentialpath /tmp/sa-key.json
           dvc pull
 
@@ -75,6 +80,7 @@ jobs:
           bucket_name = os.environ.get("BUCKET_NAME")
           client = storage.Client()
           bucket = client.bucket(bucket_name)
+          # Upload lên đường dẫn cố định để server trên VM có thể tải về
           blob = bucket.blob("models/latest/model.pkl")
           blob.upload_from_filename("models/model.pkl")
           print(f"Model uploaded to gs://{bucket_name}/models/latest/model.pkl")
@@ -95,6 +101,7 @@ jobs:
       - name: Check eval gate
         run: |
           python - <<'EOF'
+          # Ép kiểu dữ liệu để tránh lỗi so sánh chuỗi
           acc = float("${{ needs.train.outputs.accuracy }}")
           if acc < 0.70:
               raise SystemExit(f"FAILED: accuracy {acc:.4f} < 0.70. Huy deploy.")
@@ -114,6 +121,8 @@ jobs:
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
+            # Khởi động lại service để cập nhật model và code mới
             sudo systemctl restart mlops-serve
             sleep 5
+            # Xác nhận server đã sẵn sàng
             curl -sf http://localhost:8000/health && echo "Health check passed." || exit 1
