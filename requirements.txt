@@ -1,11 +1,19 @@
-mlflow==2.13.0
-scikit-learn==1.4.2
-pandas==2.2.2
+# Các thư viện chính hỗ trợ Python 3.13+
+mlflow>=2.17.0
+scikit-learn>=1.5.0
+pandas>=2.2.3
+numpy>=2.1.0
+
+# Công cụ quản lý dữ liệu và CI/CD
 dvc[gs]==3.50.1
 pathspec==0.11.2
+pyyaml==6.0.1
+
+# Kiểm thử và API
 pytest==8.2.0
 fastapi==0.111.0
 uvicorn==0.29.0
 joblib==1.4.2
+
+# Google Cloud
 google-cloud-storage==2.16.0
-pyyaml==6.0.1
